@@ -1,0 +1,10 @@
+*.py[cod]
+*.spec
+*.so
+*.egg
+*.egg-info
+dist
+build
+env
+results
+data
