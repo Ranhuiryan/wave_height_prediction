@@ -8,3 +8,4 @@ build
 env
 results
 data
+__pycache__

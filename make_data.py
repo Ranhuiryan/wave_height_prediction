@@ -1,19 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-import pandas as pd
-from pandas import read_csv
-from datetime import datetime
-from matplotlib import pyplot
-from scipy import stats
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-import os, glob, sys, pickle
-# import seaborn as sns
 
-# sns.set(style="ticks", font_scale=1.4)
-# pyplot.rcParams['font.sans-serif'] = ['SimHei']
-# pyplot.rcParams['axes.unicode_minus'] = False
+import os, pickle
+import numpy as np
+from pandas import read_csv
+from sklearn.preprocessing import MinMaxScaler
 
 def parseData(origin_data, features_period, stride, targets, interval=0, targets_period=1, features=[]):
     data = []
@@ -109,55 +100,3 @@ def prepareData(data_source, time_periods, save_path, features, targets, feature
         interval:{interval}
         data size:{(X.shape, y.shape)}
         ''')
-
-def readOceanData(station='XMD'):
-    def parse(x):
-        year = '2019'
-        return datetime.strptime(year+' '+x, '%Y %m %d %H')
-    dataset = read_csv('./data/ocean/ocean_data_2019.csv',  parse_dates = [['Month', 'Date', 'Time']], index_col=0, date_parser=parse)
-    
-    dataset = dataset[dataset['Station'] == station]
-    dataset.drop(['Station', 'Lat.', 'Long.', 'Visibility', 'During_Past_6_hours_Precipitation', 'Surge_Height', 'Surge_Period'], axis=1, inplace=True)
-
-    dataset.replace('C', 0, inplace=True)
-    for c in dataset.columns.drop(['Wind Direction', 'Air pressure']):
-        invalid_values = np.unique(dataset[dataset[c] > 90][c].values)
-        for value in invalid_values:
-            dataset[c].replace(value, np.nan, inplace=True)
-    invalid_values = np.unique(dataset[dataset['Air pressure'] > 2000]['Air pressure'].values)
-    for value in invalid_values:
-        dataset['Air pressure'].replace(value, np.nan, inplace=True)
-    dataset.dropna()
-    
-    dataset.columns = ['air_temp', 'wind_dir', 'wind_spd', 'air_pre', 'sea_temp', 'height', 'period']
-    dataset.index.name = 'date'
-    dataset.sort_index(inplace=True)
-    
-    dataset.to_csv('./data/ocean/station_%s.csv'%(station))
-
-
-def parse(x):
-    return datetime.strptime(x, '%Y %m %d %H')
-
-if __name__ == '__main__':
-    for dataset in glob.glob('./data/ocean/ext/*.csv'):
-        d0 = read_csv(dataset,  parse_dates = ['date'], index_col=0, date_parser=parse)
-        d0.dropna(subset=d0.columns.difference(['air_temp', 'sea_temp']), inplace=True)
-        d0.fillna(-1, inplace=True)
-        d0.sort_values('date', inplace=True)
-        d0.to_csv('./data/ocean/full/'+os.path.basename(dataset))
-
-
-    features = [0,1,2,3,5,6]
-    target = [3]
-    time_period = [('2015-1-1', '2019-5-31'), ('2019-7-2', '2019-12-31'), ('2019-6-1', '2019-7-1')]
-    interval = 0
-    # feature_period = 6
-    # for interval in [0, 5, 11]:
-    for feature_period in [1, 4, 6, 12]:
-        for dataset in glob.glob('./data/ocean/full/station_*.csv'):
-            fname = os.path.splitext(os.path.basename(dataset))[0]
-            print(fname)
-            save_path = f'./data/period_group_by_station_full/{fname}/save_fp_{feature_period}_i_{interval+1}/'
-            prepareData(dataset, time_period, save_path, features, target, feature_period, interval)
-        
